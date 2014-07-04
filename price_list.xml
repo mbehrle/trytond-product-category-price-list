@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<tryton>
+    <data>
+
+        <record model="ir.ui.view" id="price_list_line_view_form">
+            <field name="model">product.price_list.line</field>
+            <field name="inherit" ref="product_price_list.price_list_line_view_form"/>
+            <field name="name">price_list_line_form</field>
+        </record>
+    </data>
+</tryton>
