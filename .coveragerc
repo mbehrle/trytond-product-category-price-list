@@ -1,0 +1,5 @@
+[run]
+source = trytond.modules.product_category_price_list
+
+[report]
+omit = */tests/*, */fabfile.py
