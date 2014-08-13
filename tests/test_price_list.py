@@ -120,15 +120,23 @@ class TestPriceList(unittest.TestCase):
                 'main_company': company,
             })
 
-            category, = Category.create([{
+            category, category2 = Category.create([{
                 'name': 'Test Category'
+            }, {
+                'name': 'Test Category 2'
             }])
-            template, = ProductTemplate.create([{
+            template, template2 = ProductTemplate.create([{
                 'name': 'Test Template',
                 'list_price': Decimal('20'),
                 'cost_price': Decimal('30'),
                 'default_uom': Uom.search([('name', '=', 'Unit')], limit=1)[0],
                 'category': category.id,
+            }, {
+                'name': 'Test Template 2',
+                'list_price': Decimal('40'),
+                'cost_price': Decimal('50'),
+                'default_uom': Uom.search([('name', '=', 'Unit')], limit=1)[0],
+                'category': category2.id,
             }])
 
             with Transaction().set_context({'company': company.id}):
@@ -145,6 +153,14 @@ class TestPriceList(unittest.TestCase):
                     ),
                     Decimal('20')
                 )
+                self.assertEqual(
+                    price_list.compute(
+                        party, template2.products[0],
+                        template2.list_price, 1, template2.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('40')
+                )
 
                 # Rule for a product alone
                 PriceListLine.create([{
@@ -153,7 +169,6 @@ class TestPriceList(unittest.TestCase):
                     'formula': 'unit_price * 1.1',
                     'sequence': 100,
                 }])
-                # Without any rules unit price should be in effect
                 self.assertEqual(
                     price_list.compute(
                         party, template.products[0],
@@ -161,6 +176,14 @@ class TestPriceList(unittest.TestCase):
                         pattern=None
                     ),
                     Decimal('20') * Decimal('1.1')
+                )
+                self.assertEqual(
+                    price_list.compute(
+                        party, template2.products[0],
+                        template2.list_price, 1, template2.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('40')
                 )
 
                 # Rule for the category with higher priority
@@ -170,7 +193,6 @@ class TestPriceList(unittest.TestCase):
                     'formula': 'unit_price * 1.2',
                     'sequence': 50,
                 }])
-                # Without any rules unit price should be in effect
                 self.assertEqual(
                     price_list.compute(
                         party, template.products[0],
@@ -179,6 +201,14 @@ class TestPriceList(unittest.TestCase):
                     ),
                     Decimal('20') * Decimal('1.2')
                 )
+                self.assertEqual(
+                    price_list.compute(
+                        party, template2.products[0],
+                        template2.list_price, 1, template2.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('40')
+                )
 
                 # Match all rule with higher priority
                 PriceListLine.create([{
@@ -186,7 +216,6 @@ class TestPriceList(unittest.TestCase):
                     'formula': 'unit_price * 1.3',
                     'sequence': 30,
                 }])
-                # Without any rules unit price should be in effect
                 self.assertEqual(
                     price_list.compute(
                         party, template.products[0],
@@ -194,6 +223,14 @@ class TestPriceList(unittest.TestCase):
                         pattern=None
                     ),
                     Decimal('20') * Decimal('1.3')
+                )
+                self.assertEqual(
+                    price_list.compute(
+                        party, template2.products[0],
+                        template2.list_price, 1, template2.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('40') * Decimal('1.3')
                 )
 
 
