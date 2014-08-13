@@ -51,8 +51,7 @@ class PriceListLine:
 
     category = fields.Many2One(
         'product.category', 'Category',
-        states={'readonly': Bool(Eval('product'))}, depends=['product'],
-        on_change=['category']
+        states={'readonly': Bool(Eval('product'))}, depends=['product']
     )
 
     @classmethod
@@ -67,6 +66,7 @@ class PriceListLine:
         cls.product.on_change = ['product']
         cls.product.states['readonly'] = Bool(Eval('category'))
 
+    @fields.depends('category')
     def on_change_product(self):
         """
         Clear category field on change of product
@@ -77,6 +77,7 @@ class PriceListLine:
             }
         return {}
 
+    @fields.depends('product')
     def on_change_category(self):
         """
         Clear product field on change of category
