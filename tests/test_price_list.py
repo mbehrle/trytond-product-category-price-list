@@ -26,6 +26,7 @@ class TestPriceList(unittest.TestCase):
         """
         PriceListLine = POOL.get('product.price_list.line')
         ProductTemplate = POOL.get('product.template')
+        Product = POOL.get('product.product')
         Uom = POOL.get('product.uom')
         Category = POOL.get('product.category')
         PriceList = POOL.get('product.price_list')
@@ -59,6 +60,10 @@ class TestPriceList(unittest.TestCase):
                 'default_uom': Uom.search([('name', '=', 'Unit')], limit=1)[0]
             }])
 
+            product, = Product.create([{
+                'template': template.id,
+            }])
+
             category, = Category.create([{
                 'name': 'Test Category'
             }])
@@ -68,17 +73,32 @@ class TestPriceList(unittest.TestCase):
                     'name': 'Test Price List'
                 }])
 
+                # Create a line without product or category
+                list_line1, = PriceListLine.create([{
+                    'price_list': price_list.id,
+                }])
+                self.assert_(list_line1)
+                # Test on_change of product and category
+                self.assertEqual(list_line1.on_change_product(), {})
+                self.assertEqual(list_line1.on_change_category(), {})
+
                 # Create price list with product
-                PriceListLine.create([{
+                list_line2, = PriceListLine.create([{
                     'price_list': price_list.id,
                     'product': template.products[0].id,
                 }])
+                self.assert_(list_line2)
+                # Test on_change_product
+                self.assertIsNone(list_line2.on_change_product()['category'])
 
                 # Create price list with category
-                PriceListLine.create([{
+                list_line3, = PriceListLine.create([{
                     'price_list': price_list.id,
                     'category': category.id,
                 }])
+                self.assert_(list_line3)
+                # Test on_change_category
+                self.assertIsNone(list_line3.on_change_category()['product'])
 
                 # Create price list with both product and category
                 with self.assertRaises(UserError):
@@ -94,6 +114,7 @@ class TestPriceList(unittest.TestCase):
         """
         PriceListLine = POOL.get('product.price_list.line')
         ProductTemplate = POOL.get('product.template')
+        Product = POOL.get('product.product')
         Uom = POOL.get('product.uom')
         Category = POOL.get('product.category')
         PriceList = POOL.get('product.price_list')
@@ -137,6 +158,11 @@ class TestPriceList(unittest.TestCase):
                 'cost_price': Decimal('50'),
                 'default_uom': Uom.search([('name', '=', 'Unit')], limit=1)[0],
                 'category': category2.id,
+            }])
+            product, product2 = Product.create([{
+                'template': template.id,
+            }, {
+                'template': template2.id,
             }])
 
             with Transaction().set_context({'company': company.id}):
