@@ -66,7 +66,7 @@ class PriceListLine:
         cls.product.on_change = ['product']
         cls.product.states['readonly'] = Bool(Eval('category'))
 
-    @fields.depends('category')
+    @fields.depends('category', 'product')
     def on_change_product(self):
         """
         Clear category field on change of product
@@ -77,7 +77,7 @@ class PriceListLine:
             }
         return {}
 
-    @fields.depends('product')
+    @fields.depends('category', 'product')
     def on_change_category(self):
         """
         Clear product field on change of category
