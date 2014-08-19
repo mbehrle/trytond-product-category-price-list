@@ -1,0 +1,8 @@
+<data>
+    <xpath expr="/tree/field[@name='product']" position="after">
+        <field name="category"/>
+    </xpath>
+    <xpath expr="/tree/field[@name='product']" position="before">
+        <field name="sequence"/>
+    </xpath>
+</data>
