@@ -5,7 +5,7 @@
     :copyright: (c) 2014 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
-from trytond.pool import PoolMeta
+from trytond.pool import PoolMeta, Pool
 from trytond.model import fields
 from trytond.pyson import Eval, Bool
 
@@ -104,3 +104,57 @@ class PriceListLine:
         """
         if self.product and self.category:
             self.raise_user_error("not_allowed_together")
+
+    def _match_category(self, category):
+        """
+        Match with the category and its parents
+        """
+        Category = Pool().get('product.category')
+        category = Category(category)
+
+        if not self.category:
+            return False
+
+        def is_a_match(pattern_category):
+            if self.category.id == pattern_category.id:
+                return True
+            if pattern_category.parent:
+                return is_a_match(pattern_category.parent)
+            return False
+
+        return is_a_match(category)
+
+    def match(self, pattern):
+        '''
+        Match line on pattern
+
+        This is reimplemented here because in version 3.2, the price list line
+        matching is not really implemented well.
+
+        :param pattern: a dictonary with price list line field as key
+                and match value as value
+        :return: a boolean
+        '''
+        res = True
+        for field in pattern.keys():
+            if field not in self._fields:
+                continue
+            if getattr(self, field) is None:
+                continue
+            if field == 'category' and pattern['category']:
+                if not self._match_category(pattern['category']):
+                    res = False
+                    break
+            elif self._fields[field]._type == 'many2one':
+                if getattr(self, field).id != pattern[field]:
+                    res = False
+                    break
+            elif field == 'quantity':
+                if getattr(self, field) > pattern[field]:
+                    res = False
+                    break
+            else:
+                if getattr(self, field) != pattern[field]:
+                    res = False
+                    break
+        return res
