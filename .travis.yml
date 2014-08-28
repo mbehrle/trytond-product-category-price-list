@@ -1,19 +1,15 @@
 language: python
 python:
   - 2.7
-before_install:
-  - sudo apt-get install python-lxml
-  - CFLAGS=-O0 pip install lxml
 install:
-  - pip install -r requirements.txt
-  - pip install flake8
   - pip install coveralls
-script:
-  - coverage run setup.py test
-  - python setup.py test_on_postgres
-  - flake8 .
+script: make test-$TEST_CMD
+env:
+  - TEST_CMD="sqlite"
+  - TEST_CMD="postgres"
+  - TEST_CMD="flake8"
 after_success:
-  coveralls
+  - coveralls
 notifications:
   email:
   - ci-notify@openlabs.co.in
