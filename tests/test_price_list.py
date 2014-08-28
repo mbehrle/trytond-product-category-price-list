@@ -141,10 +141,19 @@ class TestPriceList(unittest.TestCase):
                 'main_company': company,
             })
 
+            self.grand_parent_category, = Category.create([{
+                'name': 'grandpa'
+            }])
+            self.parent_category, = Category.create([{
+                'name': 'Test Category',
+                'parent': self.grand_parent_category.id,
+            }])
             category, category2 = Category.create([{
-                'name': 'Test Category'
+                'name': 'Test Category',
+                'parent': self.parent_category.id,
             }, {
-                'name': 'Test Category 2'
+                'name': 'Test Category 2',
+                'parent': self.parent_category.id,
             }])
             template, template2 = ProductTemplate.create([{
                 'name': 'Test Template',
@@ -234,6 +243,127 @@ class TestPriceList(unittest.TestCase):
                         pattern=None
                     ),
                     Decimal('40')
+                )
+
+                # Rule for the parent category with a lower priority
+                #
+                # Tip: should not work for product1, but will product2
+                # since the parent is also a parent of product2
+                line, = PriceListLine.create([{
+                    'price_list': price_list.id,
+                    'category': self.parent_category.id,
+                    'formula': 'unit_price * 2',
+                    'sequence': 51,
+                }])
+                self.assertEqual(
+                    price_list.compute(
+                        party, template.products[0],
+                        template.list_price, 1, template.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('20') * Decimal('1.2')
+                )
+                self.assertEqual(
+                    price_list.compute(
+                        party, template2.products[0],
+                        template2.list_price, 1, template2.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('40') * Decimal('2')
+                )
+                # Make the priority of the rule lower to push it first in
+                # the chain and now it should take effect
+                #
+                # tip: It should work for both products now because this
+                # is the first matching rule
+                PriceListLine.write([line], {
+                    'sequence': 45,
+                })
+                self.assertEqual(
+                    price_list.compute(
+                        party, template.products[0],
+                        template.list_price, 1, template.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('20') * Decimal('2')
+                )
+                self.assertEqual(
+                    price_list.compute(
+                        party, template2.products[0],
+                        template2.list_price, 1, template2.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('40') * Decimal('2')
+                )
+
+                # A rule for the grand parent at the end which should have
+                # no effect becuase rules of the parent match.
+                line, = PriceListLine.create([{
+                    'price_list': price_list.id,
+                    'category': self.grand_parent_category.id,
+                    'formula': 'unit_price * 3',
+                    'sequence': 55,
+                }])
+                self.assertEqual(
+                    price_list.compute(
+                        party, template.products[0],
+                        template.list_price, 1, template.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('20') * Decimal('2')
+                )
+                self.assertEqual(
+                    price_list.compute(
+                        party, template2.products[0],
+                        template2.list_price, 1, template2.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('40') * Decimal('2')
+                )
+
+                # Move it up the chain and boom all products are thrice
+                # as expensive.
+                PriceListLine.write([line], {
+                    'sequence': 40,
+                })
+                self.assertEqual(
+                    price_list.compute(
+                        party, template.products[0],
+                        template.list_price, 1, template.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('20') * Decimal('3')
+                )
+                self.assertEqual(
+                    price_list.compute(
+                        party, template2.products[0],
+                        template2.list_price, 1, template2.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('40') * Decimal('3')
+                )
+
+                # For a moment, the grand parent only taxes the rich who
+                # buy more than 10 pieces. This prices should all be back
+                # to the parent's more benevolent price regime
+                PriceListLine.write([line], {
+                    'quantity': 10
+                })
+                self.assertEqual(
+                    price_list.compute(
+                        party, template.products[0],
+                        template.list_price, 1, template.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('20') * Decimal('2')
+                )
+                self.assertEqual(
+                    price_list.compute(
+                        party, template2.products[0],
+                        template2.list_price, 1, template2.default_uom,
+                        pattern=None
+                    ),
+                    Decimal('40') * Decimal('2')
                 )
 
                 # Match all rule with higher priority
