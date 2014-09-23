@@ -63,7 +63,6 @@ class PriceListLine:
                 "Product and category can not be defined together",
         })
 
-        cls.product.on_change = ['product']
         cls.product.states['readonly'] = Bool(Eval('category'))
 
     @fields.depends('category', 'product')
